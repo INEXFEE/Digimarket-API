@@ -8,6 +8,9 @@ class User(db.Model):
     role = db.Column(db.String(50), nullable=False, default='client') # 'client' or 'admin'
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
+    # Relation
+    orders = db.relationship('Order', back_populates='user', cascade="all, delete-orphan")
+
     def __init__(self, email, password, role='client'):
         self.email = email
         # La magie opère ici : assigner à .password déclenche le @password.setter
@@ -66,7 +69,7 @@ class Order(db.Model):
     shipping_country = db.Column(db.String(100), nullable=False)
 
     # Relations
-    user = db.relationship('User', backref=db.backref('orders', cascade="all, delete-orphan"))
+    user = db.relationship('User', back_populates='orders')
     items = db.relationship('OrderItem', back_populates='order', cascade="all, delete-orphan")
 
     def __repr__(self):
