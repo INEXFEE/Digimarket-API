@@ -58,10 +58,10 @@ Content-Type: application/json
 # ==================================
 
 ### Lister tous les produits (route publique)
-GET {{baseUrl}}/api/products/
+GET {{baseUrl}}/api/products/ HTTP/1.1
 
 ### Lister les produits avec une recherche et une pagination
-GET {{baseUrl}}/api/products/?q=Laptop&page=1&per_page=5
+GET {{baseUrl}}/api/products/?q=Laptop&page=1&per_page=5 HTTP/1.1
 
 ### Créer un nouveau produit (Admin requis)
 # Cette requête utilise le @adminToken capturé plus haut.
