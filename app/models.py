@@ -35,8 +35,9 @@ class Product(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
-    # Relation
-    category = db.relationship('Category', backref=db.backref('products', lazy=True))
+    # Relations
+    category = db.relationship('Category', back_populates='products')
+    order_items = db.relationship('OrderItem', back_populates='product')
 
     def __repr__(self):
         return f'<Product {self.name}>'
@@ -45,6 +46,9 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(db.Text, nullable=True)
+
+    # Relation
+    products = db.relationship('Product', back_populates='category')
 
     def __repr__(self):
         return f'<Category {self.name}>'
@@ -56,9 +60,14 @@ class Order(db.Model):
     total_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(50), default='pending') # e.g., pending, completed, cancelled
 
+    shipping_address = db.Column(db.String(255), nullable=False)
+    shipping_city = db.Column(db.String(100), nullable=False)
+    shipping_postal_code = db.Column(db.String(20), nullable=False)
+    shipping_country = db.Column(db.String(100), nullable=False)
+
     # Relations
-    user = db.relationship('User', backref=db.backref('orders', lazy=True))
-    items = db.relationship('OrderItem', backref='order', lazy=True)
+    user = db.relationship('User', backref=db.backref('orders', cascade="all, delete-orphan"))
+    items = db.relationship('OrderItem', back_populates='order', cascade="all, delete-orphan")
 
     def __repr__(self):
         return f'<Order {self.id} by User {self.user_id}>'
@@ -71,7 +80,8 @@ class OrderItem(db.Model):
     price_at_order = db.Column(db.Float, nullable=False) # Price at the time of order
 
     # Relations
-    product = db.relationship('Product', backref='order_items', lazy=True)
+    order = db.relationship('Order', back_populates='items')
+    product = db.relationship('Product', back_populates='order_items')
 
     def __repr__(self):
         return f'<OrderItem {self.id} Order {self.order_id} Product {self.product_id}>'
