@@ -87,7 +87,7 @@ class OrdersTestCase(BaseTestCase):
         )
         data = json.loads(res.data)
         self.assertEqual(res.status_code, 400)
-        self.assertIn('stock insuffisant', data['message'])
+        self.assertIn('stock insuffisant', data.get('message', ''))
         # Vérifier que le stock n'a pas changé
         self.assertEqual(db.session.get(Product, self.product1.id).stock, 50)
 
