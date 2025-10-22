@@ -68,6 +68,13 @@ class OrdersTestCase(BaseTestCase):
 
     def test_create_order_no_token(self):
         """Teste la création d'une commande sans token d'authentification."""
+        order_data = {
+            'items': [{'product_id': self.product1.id, 'quantity': 1}],
+            'shipping_address': '123 Rue du Test',
+            'shipping_city': 'Testville',
+            'shipping_postal_code': '75001',
+            'shipping_country': 'France'
+        }
         res = self.client.post(
             '/api/orders/',
             data=json.dumps(order_data),

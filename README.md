@@ -90,11 +90,18 @@ python -m unittest discover
     }
     ```
 - `POST /api/auth/login` : Connexion et récupération d'un token JWT.
-  - **Body (JSON)**:
+  - **Body (JSON) pour un administrateur**:
     ```json
     {
-        "email": "existinguser@example.com",
-        "password": "the-correct-password"
+        "email": "admin@digimarket.com",
+        "password": "adminpassword"
+    }
+    ```
+  - **Body (JSON) pour un client**:
+    ```json
+    {
+        "email": "client-postman@example.com",
+        "password": "password123"
     }
     ```
 
