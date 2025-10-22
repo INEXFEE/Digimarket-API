@@ -78,7 +78,13 @@ class OrdersTestCase(BaseTestCase):
 
     def test_create_order_insufficient_stock(self):
         """Teste la création d'une commande avec un stock insuffisant."""
-        order_data = {'items': [{'product_id': self.product1.id, 'quantity': 100}]} # Stock est 50
+        order_data = {
+            'items': [{'product_id': self.product1.id, 'quantity': 100}], # Stock est 50
+            'shipping_address': '123 Rue du Test',
+            'shipping_city': 'Testville',
+            'shipping_postal_code': '75001',
+            'shipping_country': 'France'
+        }
         res = self.client.post(
             '/api/orders/',
             data=json.dumps(order_data),
