@@ -1,0 +1,111 @@
+# Ce fichier vous permet de tester votre API directement depuis VS Code
+# grâce à l'extension "REST Client".
+# Cliquez sur "Send Request" au-dessus de chaque requête pour l'exécuter.
+
+# --- VARIABLES ---
+# Définissez ici les variables réutilisables.
+@baseUrl = http://127.0.0.1:5000
+@adminEmail = admin@digimarket.com
+@adminPassword = adminpassword
+@clientEmail = client@example.com
+@clientPassword = password123
+
+
+###
+# ==================================
+# AUTHENTICATION
+# ==================================
+
+### Inscription d'un nouvel utilisateur (client)
+# Utilisez {{$randomInt}} pour générer un email unique à chaque fois.
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+    "email": "newuser-{{$randomInt}}@example.com",
+    "password": "password123"
+}
+
+### Connexion en tant qu'administrateur pour obtenir un token
+# @name loginAdmin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "{{adminEmail}}",
+    "password": "{{adminPassword}}"
+}
+
+# La ligne suivante capture le token de la réponse précédente dans une variable @adminToken
+@adminToken = {{loginAdmin.response.body.token}}
+
+### Connexion en tant que client pour obtenir un token
+# @name loginClient
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "{{clientEmail}}",
+    "password": "{{clientPassword}}"
+}
+
+@clientToken = {{loginClient.response.body.token}}
+
+
+###
+# ==================================
+# PRODUITS (Public & Admin)
+# ==================================
+
+### Lister tous les produits (route publique)
+GET {{baseUrl}}/api/products/
+
+### Lister les produits avec une recherche et une pagination
+GET {{baseUrl}}/api/products/?q=Laptop&page=1&per_page=5
+
+### Créer un nouveau produit (Admin requis)
+# Cette requête utilise le @adminToken capturé plus haut.
+POST {{baseUrl}}/api/products/
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+    "name": "Clavier Mécanique RGB",
+    "description": "Un clavier performant pour les gamers.",
+    "price": 129.99,
+    "stock": 50,
+    "category_id": 2
+}
+
+
+###
+# ==================================
+# COMMANDES (Client & Admin)
+# ==================================
+
+### Créer une nouvelle commande (Client requis)
+# Cette requête utilise le @clientToken.
+POST {{baseUrl}}/api/orders/
+Content-Type: application/json
+Authorization: Bearer {{clientToken}}
+
+{
+    "items": [
+        {"product_id": 1, "quantity": 1},
+        {"product_id": 2, "quantity": 3}
+    ],
+    "shipping_address": "42 Rue de la Galaxie",
+    "shipping_city": "Guide",
+    "shipping_postal_code": "42424",
+    "shipping_country": "Univers"
+}
+
+### Mettre à jour le statut d'une commande (Admin requis)
+# Remplacez 1 par un ID de commande valide.
+PATCH {{baseUrl}}/api/orders/1
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+    "status": "shipped"
+}
