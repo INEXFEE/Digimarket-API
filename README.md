@@ -82,13 +82,40 @@ python -m unittest discover
 ### Authentification
 
 - `POST /api/auth/register` : Inscription d'un nouvel utilisateur.
+  - **Body (JSON)**:
+    ```json
+    {
+        "email": "newuser@example.com",
+        "password": "a-strong-password"
+    }
+    ```
 - `POST /api/auth/login` : Connexion et récupération d'un token JWT.
+  - **Body (JSON)**:
+    ```json
+    {
+        "email": "existinguser@example.com",
+        "password": "the-correct-password"
+    }
+    ```
 
 ### Catégories
 
 - `GET /api/categories/` : Lister toutes les catégories.
 - `POST /api/categories/` : Créer une nouvelle catégorie (Admin requis).
+  - **Body (JSON)**:
+    ```json
+    {
+        "name": "Nouvelle Catégorie",
+        "description": "Description de la nouvelle catégorie."
+    }
+    ```
 - `PUT /api/categories/{id}` : Mettre à jour une catégorie (Admin requis).
+  - **Body (JSON)**:
+    ```json
+    {
+        "name": "Nom de catégorie mis à jour"
+    }
+    ```
 - `DELETE /api/categories/{id}` : Supprimer une catégorie (Admin requis).
 
 ### Produits
@@ -96,7 +123,24 @@ python -m unittest discover
 - `GET /api/products/` : Lister tous les produits (avec pagination : `?page=1&per_page=10`).
 - `GET /api/products/{id}` : Obtenir les détails d'un produit.
 - `POST /api/products/` : Créer un nouveau produit (Admin requis).
+  - **Body (JSON)**:
+    ```json
+    {
+        "name": "Nouveau Produit",
+        "description": "Description détaillée du nouveau produit.",
+        "price": 199.99,
+        "stock": 50,
+        "category_id": 1
+    }
+    ```
 - `PUT /api/products/{id}` : Mettre à jour un produit (Admin requis).
+  - **Body (JSON)**:
+    ```json
+    {
+        "price": 189.99,
+        "stock": 45
+    }
+    ```
 - `DELETE /api/products/{id}` : Supprimer un produit (Admin requis).
 
 ### Commandes
@@ -116,3 +160,9 @@ python -m unittest discover
     ```
 - `GET /api/orders/{id}/lignes` : Consulter les lignes d'une commande.
 - `PATCH /api/orders/{id}` : Mettre à jour le statut d'une commande (Admin requis).
+  - **Body (JSON)**:
+    ```json
+    {
+        "status": "shipped"
+    }
+    ```
