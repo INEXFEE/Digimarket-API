@@ -10,7 +10,7 @@ def create_app(config_class=Config):
     # Assurez-vous que le dossier 'instance' existe
     os.makedirs(app.instance_path, exist_ok=True)
     # Définir l'URI de la base de données pour utiliser le dossier 'instance'
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or f'sqlite:///{os.path.join(app.instance_path, "database.db")}'
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or f'sqlite:///{os.path.join(app.instance_path, "digimarket.db")}'
 
     # Initialiser les extensions Flask
     db.init_app(app)
