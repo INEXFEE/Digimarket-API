@@ -1,6 +1,6 @@
 # API REST pour DigiMarket
 
-Cette API REST a été développée avec Flask pour la boutique en ligne DigiMarket. Elle permet la gestion des produits, des catégories, des commandes et des utilisateurs, avec un système d'authentification basé sur les rôles (Client/Administrateur).
+Cette API REST, développée avec Flask, gère la boutique en ligne DigiMarket. Elle offre la gestion des produits, catégories, commandes et utilisateurs, avec une authentification robuste basée sur les rôles (Client/Administrateur).
 
 ## Fonctionnalités
 
@@ -19,7 +19,7 @@ Cette API REST a été développée avec Flask pour la boutique en ligne DigiMar
 
 1.  **Clonez le dépôt :**
     ```bash
-    git clone <URL_de_votre_dépôt_git>
+    git clone https://github.com/INEXFEE/Digimarket-API # N'oubliez pas de remplacer par l'URL réelle de votre dépôt
     cd DigiMarketAPI
     ```
 
