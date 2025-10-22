@@ -1,62 +1,18 @@
 import unittest
 import json
-from app import create_app
 from app.extensions import db
 from app.models import User, Product, Category
-from config import Config
+from .base import BaseTestCase
 
-class TestConfig(Config):
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    BCRYPT_LOG_ROUNDS = 4
-    JWT_SECRET_KEY = 'test-jwt-secret-key' # Explicitly set for tests
-
-class ProductsTestCase(unittest.TestCase):
+class ProductsTestCase(BaseTestCase):
     """Cette classe teste les endpoints liés aux produits."""
 
     def setUp(self):
         """Configuration initiale pour chaque test."""
-        self.app = create_app(TestConfig)
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        db.create_all()
-        self.client = self.app.test_client()
+        super().setUp()
         self._setup_users_and_tokens()
         self._create_test_categories()
         self._create_test_products()
-
-    def tearDown(self):
-        """Nettoyage après chaque test."""
-        db.session.remove()
-        db.drop_all()
-        self.app_context.pop()
-
-    def _setup_users_and_tokens(self):
-        """Crée un utilisateur client et un utilisateur admin, et leurs tokens."""
-        # Client user
-        client_user = User(email='client@example.com', password='password123', role='client')
-        # Admin user
-        admin_user = User(email='admin@example.com', password='password123', role='admin')
-        db.session.add_all([client_user, admin_user])
-        db.session.commit()
-
-        # Get client token
-        res_client = self.client.post(
-            '/api/auth/login',
-            data=json.dumps({'email': 'client@example.com', 'password': 'password123'}),
-            content_type='application/json'
-        )
-        client_token = json.loads(res_client.data)['token']
-        self.client_headers = {'Authorization': f'Bearer {client_token}'}
-
-        # Get admin token
-        res_admin = self.client.post(
-            '/api/auth/login',
-            data=json.dumps({'email': 'admin@example.com', 'password': 'password123'}),
-            content_type='application/json'
-        )
-        admin_token = json.loads(res_admin.data)['token']
-        self.admin_headers = {'Authorization': f'Bearer {admin_token}'}
 
     def _create_test_categories(self):
         """Méthode d'aide pour créer des catégories de test."""

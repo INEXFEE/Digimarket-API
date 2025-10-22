@@ -104,4 +104,15 @@ python -m unittest discover
 - `GET /api/orders/` : Lister les commandes (un client voit ses commandes, un admin voit tout).
 - `GET /api/orders/{id}` : Obtenir les détails d'une commande.
 - `POST /api/orders/` : Créer une nouvelle commande (Client).
+  - **Body (JSON)**:
+    ```json
+    {
+        "items": [{"product_id": 1, "quantity": 2}],
+        "shipping_address": "123 Rue de l'Exemple",
+        "shipping_city": "Paris",
+        "shipping_postal_code": "75001",
+        "shipping_country": "France"
+    }
+    ```
+- `GET /api/orders/{id}/lignes` : Consulter les lignes d'une commande.
 - `PATCH /api/orders/{id}` : Mettre à jour le statut d'une commande (Admin requis).

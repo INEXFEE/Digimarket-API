@@ -15,6 +15,10 @@ def serialize_order(order):
         'order_date': order.order_date.isoformat(),
         'total_amount': order.total_amount,
         'status': order.status,
+        'shipping_address': order.shipping_address,
+        'shipping_city': order.shipping_city,
+        'shipping_postal_code': order.shipping_postal_code,
+        'shipping_country': order.shipping_country,
         'items': [{
             'product_id': item.product_id,
             'quantity': item.quantity,
@@ -59,11 +63,18 @@ def create_order():
     data = request.get_json()
     current_user_id = get_jwt_identity()
     
-    if not data or 'items' not in data:
+    required_fields = ['items', 'shipping_address', 'shipping_city', 'shipping_postal_code', 'shipping_country']
+    if not data or not all(field in data for field in required_fields):
         return jsonify({"message": "Données de commande invalides"}), 400
 
     total_amount = 0
     order_items_to_create = []
+
+    # Extraire les informations d'adresse
+    shipping_address = data['shipping_address']
+    shipping_city = data['shipping_city']
+    shipping_postal_code = data['shipping_postal_code']
+    shipping_country = data['shipping_country']
 
     try:
         for item_data in data['items']:
@@ -77,7 +88,14 @@ def create_order():
             product.stock -= quantity_requested # Décrémenter le stock
             order_items_to_create.append(OrderItem(product_id=product.id, quantity=quantity_requested, price_at_order=product.price))
 
-        new_order = Order(user_id=current_user_id, total_amount=total_amount)
+        new_order = Order(
+            user_id=current_user_id, 
+            total_amount=total_amount,
+            shipping_address=shipping_address,
+            shipping_city=shipping_city,
+            shipping_postal_code=shipping_postal_code,
+            shipping_country=shipping_country
+        )
         new_order.items.extend(order_items_to_create)
 
         db.session.add(new_order)
@@ -87,6 +105,26 @@ def create_order():
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": "Une erreur est survenue lors de la création de la commande.", "error": str(e)}), 500
+
+@orders_bp.route('/<int:order_id>/lignes', methods=['GET'])
+@jwt_required()
+def get_order_items(order_id):
+    """Consulte les lignes d'une commande spécifique."""
+    current_user_id_str = get_jwt_identity()
+    current_user = db.session.get(User, int(current_user_id_str))
+
+    if current_user and current_user.role == 'admin':
+        order = db.get_or_404(Order, order_id)
+    else:
+        order = Order.query.filter_by(id=order_id, user_id=int(current_user_id_str)).first_or_404()
+    
+    items = [{
+        'product_id': item.product_id,
+        'quantity': item.quantity,
+        'price_at_order': item.price_at_order
+    } for item in order.items]
+    
+    return jsonify(items), 200
 
 @orders_bp.route('/<int:order_id>', methods=['PATCH'])
 @admin_required()
@@ -103,6 +141,13 @@ def update_order_status(order_id):
 
     if new_status not in allowed_statuses:
         return jsonify({"message": f"Statut invalide. Les statuts autorisés sont : {', '.join(allowed_statuses)}"}), 400
+
+    # Si la commande est annulée, réintégrer le stock
+    if new_status == 'cancelled' and order.status != 'cancelled':
+        for item in order.items:
+            product = db.session.get(Product, item.product_id)
+            if product:
+                product.stock += item.quantity
 
     order.status = new_status
     db.session.commit()

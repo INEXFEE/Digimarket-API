@@ -1,41 +1,13 @@
 import unittest
 import json
-import os
-from app import create_app
 from app.extensions import db
 from app.models import User
-from config import Config # Assurez-vous que ce chemin d'importation est correct pour votre structure
+from .base import BaseTestCase
 
-class TestConfig(Config):
-    TESTING = True
-    # Utiliser une base de données en mémoire pour les tests
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    # Désactiver le hachage Bcrypt pour des tests plus rapides
-    BCRYPT_LOG_ROUNDS = 4
-    JWT_SECRET_KEY = 'test-jwt-secret-key' # Explicitly set for tests
-
-class AuthTestCase(unittest.TestCase):
+class AuthTestCase(BaseTestCase):
     """Cette classe teste les fonctionnalités d'authentification."""
 
-    def setUp(self):
-        """
-        Exécuté avant chaque test.
-        Configure une nouvelle application et une nouvelle base de données.
-        """
-        self.app = create_app(TestConfig)
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        db.create_all()
-        self.client = self.app.test_client()
-
-    def tearDown(self):
-        """
-        Exécuté après chaque test.
-        Supprime la session de la base de données et la structure de la base de données.
-        """
-        db.session.remove()
-        db.drop_all()
-        self.app_context.pop()
+    # Le setUp et le tearDown sont maintenant hérités de BaseTestCase
 
     def test_register_user(self):
         """Teste l'inscription d'un nouvel utilisateur."""

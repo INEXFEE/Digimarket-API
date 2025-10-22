@@ -1,63 +1,19 @@
 import unittest
 import json
-from app import create_app
 from app.extensions import db
 from app.models import User, Product, Order, OrderItem, Category
-from config import Config
+from .base import BaseTestCase
 
-class TestConfig(Config):
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    BCRYPT_LOG_ROUNDS = 4
-    JWT_SECRET_KEY = 'test-jwt-secret-key' # Explicitly set for tests
-
-class OrdersTestCase(unittest.TestCase):
+class OrdersTestCase(BaseTestCase):
     """Cette classe teste les endpoints liés aux commandes."""
 
     def setUp(self):
         """Configuration initiale pour chaque test."""
-        self.app = create_app(TestConfig)
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        db.create_all()
-        self.client = self.app.test_client()
+        super().setUp()
         self._setup_users_and_tokens()
         self._create_test_categories()
         self._create_test_products()
-
-    def tearDown(self):
-        """Nettoyage après chaque test."""
-        db.session.remove()
-        db.drop_all()
-        self.app_context.pop()
-
-    def _setup_users_and_tokens(self):
-        """Crée un utilisateur client et un utilisateur admin, et leurs tokens."""
-        # Client user
-        self.client_user = User(email='client@example.com', password='password123', role='client')
-        # Admin user
-        self.admin_user = User(email='admin@example.com', password='password123', role='admin')
-        db.session.add_all([self.client_user, self.admin_user])
-        db.session.commit()
-
-        # Get client token
-        res_client = self.client.post(
-            '/api/auth/login',
-            data=json.dumps({'email': 'client@example.com', 'password': 'password123'}),
-            content_type='application/json'
-        )
-        client_token = json.loads(res_client.data)['token']
-        self.client_headers = {'Authorization': f'Bearer {client_token}'}
         self.client_user_id = self.client_user.id
-
-        # Get admin token
-        res_admin = self.client.post(
-            '/api/auth/login',
-            data=json.dumps({'email': 'admin@example.com', 'password': 'password123'}),
-            content_type='application/json'
-        )
-        admin_token = json.loads(res_admin.data)['token']
-        self.admin_headers = {'Authorization': f'Bearer {admin_token}'}
 
     def _create_test_categories(self):
         """Méthode d'aide pour créer des catégories de test."""
@@ -81,7 +37,11 @@ class OrdersTestCase(unittest.TestCase):
             'items': [
                 {'product_id': self.product1.id, 'quantity': 2},
                 {'product_id': self.product2.id, 'quantity': 1}
-            ]
+            ],
+            'shipping_address': '123 Rue du Test',
+            'shipping_city': 'Testville',
+            'shipping_postal_code': '75001',
+            'shipping_country': 'France'
         }
         res = self.client.post(
             '/api/orders/',
@@ -94,11 +54,16 @@ class OrdersTestCase(unittest.TestCase):
         self.assertEqual(data['message'], 'Commande créée avec succès')
         self.assertIn('order_id', data)
 
+        # Vérifier que la commande a été créée avec la bonne adresse
+        created_order = db.session.get(Order, data['order_id'])
+        self.assertIsNotNone(created_order)
+        self.assertEqual(created_order.shipping_address, '123 Rue du Test')
+        self.assertEqual(created_order.shipping_city, 'Testville')
+
         # Vérifier que le stock a été mis à jour
         self.assertEqual(db.session.get(Product, self.product1.id).stock, 48)
         self.assertEqual(db.session.get(Product, self.product2.id).stock, 199)
         # Vérifier que la commande et les OrderItems ont été créés
-        self.assertEqual(Order.query.count(), 1)
         self.assertEqual(OrderItem.query.count(), 2)
 
     def test_create_order_no_token(self):
@@ -128,8 +93,15 @@ class OrdersTestCase(unittest.TestCase):
 
     def test_get_orders_as_client(self):
         """Teste qu'un client ne voit que ses propres commandes."""
-        # Crée une commande et un OrderItem directement dans la DB pour ce test
-        order = Order(user_id=self.client_user_id, total_amount=1275.50)
+        # Crée une commande avec adresse
+        order = Order(
+            user_id=self.client_user_id, 
+            total_amount=1275.50,
+            shipping_address='123 Rue du Test',
+            shipping_city='Testville',
+            shipping_postal_code='75001',
+            shipping_country='France'
+        )
         item1 = OrderItem(order=order, product_id=self.product1.id, quantity=1, price_at_order=self.product1.price)
         db.session.add_all([order, item1])
         db.session.commit()
@@ -143,9 +115,17 @@ class OrdersTestCase(unittest.TestCase):
     def test_get_orders_as_admin(self):
         """Teste qu'un admin voit toutes les commandes."""
         # Crée une commande pour le client
-        order1 = Order(user_id=self.client_user_id, total_amount=100)
+        order1 = Order(
+            user_id=self.client_user_id, total_amount=100,
+            shipping_address='Addr 1', shipping_city='City 1',
+            shipping_postal_code='11111', shipping_country='FR'
+        )
         # Crée une commande pour l'admin
-        order2 = Order(user_id=self.admin_user.id, total_amount=200)
+        order2 = Order(
+            user_id=self.admin_user.id, total_amount=200,
+            shipping_address='Addr 2', shipping_city='City 2',
+            shipping_postal_code='22222', shipping_country='FR'
+        )
         db.session.add_all([order1, order2])
         db.session.commit()
 
@@ -155,8 +135,14 @@ class OrdersTestCase(unittest.TestCase):
 
     def test_get_single_order(self):
         """Teste la récupération d'une commande spécifique par ID."""
-        # Crée une commande et des OrderItems directement dans la DB pour ce test
-        order = Order(user_id=self.client_user_id, total_amount=1200.00)
+        # Crée une commande avec adresse
+        order = Order(
+            user_id=self.client_user_id, total_amount=1200.00,
+            shipping_address='123 Rue du Test',
+            shipping_city='Testville',
+            shipping_postal_code='75001',
+            shipping_country='France'
+        )
         item1 = OrderItem(order=order, product_id=self.product1.id, quantity=1, price_at_order=self.product1.price)
         item2 = OrderItem(order=order, product_id=self.product2.id, quantity=1, price_at_order=self.product2.price)
         db.session.add_all([order, item1, item2])
@@ -167,6 +153,7 @@ class OrdersTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data['id'], order_id)
         self.assertEqual(data['user_id'], self.client_user_id)
+        self.assertEqual(data['shipping_city'], 'Testville')
         self.assertEqual(len(data['items']), 2)
 
     def test_get_non_existent_order(self):
@@ -181,7 +168,11 @@ class OrdersTestCase(unittest.TestCase):
         db.session.add(user2)
         db.session.commit()
         # Créer une commande pour le deuxième utilisateur
-        order_other_user = Order(user_id=user2.id, total_amount=10.0)
+        order_other_user = Order(
+            user_id=user2.id, total_amount=10.0,
+            shipping_address='Addr Other', shipping_city='Other City',
+            shipping_postal_code='99999', shipping_country='US'
+        )
         db.session.add(order_other_user)
         db.session.commit()
 
@@ -189,9 +180,33 @@ class OrdersTestCase(unittest.TestCase):
         res = self.client.get(f'/api/orders/{order_other_user.id}', headers=self.client_headers)
         self.assertEqual(res.status_code, 404) # Doit être 404 car non trouvée pour cet utilisateur
 
+    def test_get_order_items(self):
+        """Teste la récupération des lignes d'une commande via l'endpoint /lignes."""
+        # Crée une commande avec adresse et items
+        order = Order(
+            user_id=self.client_user_id, total_amount=1275.50,
+            shipping_address='123 Rue du Test', shipping_city='Testville',
+            shipping_postal_code='75001', shipping_country='France'
+        )
+        item1 = OrderItem(order=order, product_id=self.product1.id, quantity=1, price_at_order=self.product1.price)
+        item2 = OrderItem(order=order, product_id=self.product2.id, quantity=2, price_at_order=self.product2.price)
+        db.session.add_all([order, item1, item2])
+        db.session.commit()
+
+        res = self.client.get(f'/api/orders/{order.id}/lignes', headers=self.client_headers)
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]['product_id'], self.product1.id)
+        self.assertEqual(data[1]['quantity'], 2)
+
     def test_update_order_status_as_admin(self):
         """Teste la mise à jour du statut d'une commande par un admin."""
-        order = Order(user_id=self.client_user_id, total_amount=100)
+        order = Order(
+            user_id=self.client_user_id, total_amount=100,
+            shipping_address='Addr 1', shipping_city='City 1', shipping_postal_code='11111', shipping_country='FR'
+        )
         db.session.add(order)
         db.session.commit()
 
@@ -205,9 +220,40 @@ class OrdersTestCase(unittest.TestCase):
         self.assertEqual(json.loads(res.data)['status'], 'shipped')
         self.assertEqual(db.session.get(Order, order.id).status, 'shipped')
 
+    def test_update_order_status_to_cancelled_restocks_product(self):
+        """Teste que l'annulation d'une commande réintègre le stock du produit."""
+        initial_stock = self.product1.stock
+        order_quantity = 2
+
+        # 1. Créer une commande pour décrémenter le stock
+        order = Order(
+            user_id=self.client_user_id, total_amount=self.product1.price * order_quantity,
+            shipping_address='Addr 1', shipping_city='City 1', shipping_postal_code='11111', shipping_country='FR'
+        )
+        order_item = OrderItem(order=order, product_id=self.product1.id, quantity=order_quantity, price_at_order=self.product1.price)
+        product = db.session.get(Product, self.product1.id)
+        product.stock -= order_quantity
+        db.session.add_all([order, order_item])
+        db.session.commit()
+
+        self.assertEqual(db.session.get(Product, self.product1.id).stock, initial_stock - order_quantity)
+
+        # 2. Annuler la commande en tant qu'admin
+        res = self.client.patch(
+            f'/api/orders/{order.id}',
+            data=json.dumps({'status': 'cancelled'}),
+            headers=self.admin_headers,
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(db.session.get(Product, self.product1.id).stock, initial_stock)
+
     def test_update_order_status_as_client(self):
         """Teste qu'un client ne peut pas mettre à jour le statut d'une commande."""
-        order = Order(user_id=self.client_user_id, total_amount=100)
+        order = Order(
+            user_id=self.client_user_id, total_amount=100,
+            shipping_address='Addr 1', shipping_city='City 1', shipping_postal_code='11111', shipping_country='FR'
+        )
         db.session.add(order)
         db.session.commit()
 
