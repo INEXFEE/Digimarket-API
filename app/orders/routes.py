@@ -40,8 +40,15 @@ def get_orders():
 @jwt_required()
 def get_order(order_id):
     """Récupère une commande spécifique par son ID."""
-    current_user_id = get_jwt_identity()
-    order = Order.query.filter_by(id=order_id, user_id=current_user_id).first_or_404()
+    current_user_id_str = get_jwt_identity()
+    current_user = db.session.get(User, int(current_user_id_str))
+
+    if current_user and current_user.role == 'admin':
+        # L'admin peut voir n'importe quelle commande
+        order = db.get_or_404(Order, order_id)
+    else:
+        # Un client ne peut voir que ses propres commandes
+        order = Order.query.filter_by(id=order_id, user_id=int(current_user_id_str)).first_or_404()
     
     return jsonify(serialize_order(order)), 200
 
@@ -58,23 +65,28 @@ def create_order():
     total_amount = 0
     order_items_to_create = []
 
-    for item_data in data['items']:
-        product = db.session.get(Product, item_data['product_id'])
-        quantity_requested = item_data.get('quantity', 1)
-        if not product or product.stock < quantity_requested:
-            return jsonify({"message": f"Produit {item_data['product_id']} non disponible ou stock insuffisant"}), 400
-        
-        total_amount += product.price * quantity_requested
-        product.stock -= quantity_requested # Décrémenter le stock
-        order_items_to_create.append(OrderItem(product_id=product.id, quantity=quantity_requested, price_at_order=product.price))
+    try:
+        for item_data in data['items']:
+            product = db.session.get(Product, item_data['product_id'])
+            quantity_requested = item_data.get('quantity', 1)
+            if not product or product.stock < quantity_requested:
+                # Un rollback n'est pas nécessaire ici car aucune modification n'a été faite à la session
+                return jsonify({"message": f"Produit {item_data['product_id']} non disponible ou stock insuffisant"}), 400
+            
+            total_amount += product.price * quantity_requested
+            product.stock -= quantity_requested # Décrémenter le stock
+            order_items_to_create.append(OrderItem(product_id=product.id, quantity=quantity_requested, price_at_order=product.price))
 
-    new_order = Order(user_id=current_user_id, total_amount=total_amount)
-    new_order.items.extend(order_items_to_create)
+        new_order = Order(user_id=current_user_id, total_amount=total_amount)
+        new_order.items.extend(order_items_to_create)
 
-    db.session.add(new_order)
-    db.session.commit()
+        db.session.add(new_order)
+        db.session.commit()
 
-    return jsonify({"message": "Commande créée avec succès", "order_id": new_order.id}), 201
+        return jsonify({"message": "Commande créée avec succès", "order_id": new_order.id}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": "Une erreur est survenue lors de la création de la commande.", "error": str(e)}), 500
 
 @orders_bp.route('/<int:order_id>', methods=['PATCH'])
 @admin_required()
