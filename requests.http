@@ -4,7 +4,7 @@
 
 # --- VARIABLES ---
 # Définissez ici les variables réutilisables.
-@baseUrl = http://127.0.0.1:5000
+@baseUrl = https://INEXFEE.pythonanywhere.com
 @adminEmail = admin@digimarket.com
 @adminPassword = adminpassword
 @clientEmail = client@example.com
