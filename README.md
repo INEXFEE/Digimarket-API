@@ -79,6 +79,15 @@ python -m unittest discover
 
 ## Documentation de l'API
 
+Toutes les routes protégées nécessitent un token JWT valide dans l'en-tête `Authorization`.
+
+**Format de l'en-tête :**
+```
+Authorization: Bearer <votre_token_jwt>
+```
+
+Vous pouvez obtenir ce token en utilisant la route `POST /api/auth/login`.
+
 ### Authentification
 
 - `POST /api/auth/register` : Inscription d'un nouvel utilisateur.
@@ -109,6 +118,7 @@ python -m unittest discover
 
 - `GET /api/categories/` : Lister toutes les catégories.
 - `POST /api/categories/` : Créer une nouvelle catégorie (Admin requis).
+  - **Authorization**: `Bearer <token_admin>`
   - **Body (JSON)**:
     ```json
     {
@@ -117,6 +127,7 @@ python -m unittest discover
     }
     ```
 - `PUT /api/categories/{id}` : Mettre à jour une catégorie (Admin requis).
+  - **Authorization**: `Bearer <token_admin>`
   - **Body (JSON)**:
     ```json
     {
@@ -124,12 +135,14 @@ python -m unittest discover
     }
     ```
 - `DELETE /api/categories/{id}` : Supprimer une catégorie (Admin requis).
+  - **Authorization**: `Bearer <token_admin>`
 
 ### Produits
 
 - `GET /api/products/` : Lister tous les produits (avec pagination : `?page=1&per_page=10`).
 - `GET /api/products/{id}` : Obtenir les détails d'un produit.
 - `POST /api/products/` : Créer un nouveau produit (Admin requis).
+  - **Authorization**: `Bearer <token_admin>`
   - **Body (JSON)**:
     ```json
     {
@@ -141,6 +154,7 @@ python -m unittest discover
     }
     ```
 - `PUT /api/products/{id}` : Mettre à jour un produit (Admin requis).
+  - **Authorization**: `Bearer <token_admin>`
   - **Body (JSON)**:
     ```json
     {
@@ -149,12 +163,16 @@ python -m unittest discover
     }
     ```
 - `DELETE /api/products/{id}` : Supprimer un produit (Admin requis).
+  - **Authorization**: `Bearer <token_admin>`
 
 ### Commandes
 
 - `GET /api/orders/` : Lister les commandes (un client voit ses commandes, un admin voit tout).
+  - **Authorization**: `Bearer <token_client_ou_admin>`
 - `GET /api/orders/{id}` : Obtenir les détails d'une commande.
+  - **Authorization**: `Bearer <token_client_ou_admin>`
 - `POST /api/orders/` : Créer une nouvelle commande (Client).
+  - **Authorization**: `Bearer <token_client>`
   - **Body (JSON)**:
     ```json
     {
@@ -169,7 +187,9 @@ python -m unittest discover
     }
     ```
 - `GET /api/orders/{id}/lignes` : Consulter les lignes d'une commande.
+  - **Authorization**: `Bearer <token_client_ou_admin>`
 - `PATCH /api/orders/{id}` : Mettre à jour le statut d'une commande (Admin requis).
+  - **Authorization**: `Bearer <token_admin>`
   - **Body (JSON)**:
     ```json
     {

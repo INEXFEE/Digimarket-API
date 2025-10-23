@@ -94,7 +94,7 @@ class OrdersTestCase(BaseTestCase):
             'shipping_city': 'Testville',
             'shipping_postal_code': '75001',
             'shipping_country': 'France'
-        }https://github.com/INEXFEE/Digimarket-API/blob/main/app/models.py
+        }
         res = self.client.post(
             '/api/orders/',
             data=json.dumps(order_data),
@@ -195,6 +195,11 @@ class OrdersTestCase(BaseTestCase):
         # Tenter de récupérer la commande de l'autre utilisateur avec le token du client
         res = self.client.get(f'/api/orders/{order_other_user.id}', headers=self.client_headers)
         self.assertEqual(res.status_code, 404) # Doit être 404 car non trouvée pour cet utilisateur
+
+        # Vérifier qu'un admin PEUT voir la commande de l'autre utilisateur
+        res_admin = self.client.get(f'/api/orders/{order_other_user.id}', headers=self.admin_headers)
+        self.assertEqual(res_admin.status_code, 200)
+        self.assertEqual(json.loads(res_admin.data)['id'], order_other_user.id)
 
     def test_get_order_items(self):
         """Teste la récupération des lignes d'une commande via l'endpoint /lignes."""
