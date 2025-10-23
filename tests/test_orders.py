@@ -280,6 +280,9 @@ class OrdersTestCase(BaseTestCase):
             content_type='application/json'
         )
         self.assertEqual(res.status_code, 403) # Forbidden
+        # Vérifier que le statut n'a pas changé dans la base de données
+        updated_order = db.session.get(Order, order.id)
+        self.assertEqual(updated_order.status, 'pending')
 
 if __name__ == '__main__':
     unittest.main()
