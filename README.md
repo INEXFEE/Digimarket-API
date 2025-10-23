@@ -158,7 +158,10 @@ python -m unittest discover
   - **Body (JSON)**:
     ```json
     {
-        "items": [{"product_id": 1, "quantity": 2}],
+        "items": [
+            {"product_id": 1, "quantity": 1},
+            {"product_id": 2, "quantity": 2}
+        ],
         "shipping_address": "123 Rue de l'Exemple",
         "shipping_city": "Paris",
         "shipping_postal_code": "75001",

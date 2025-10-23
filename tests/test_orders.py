@@ -33,6 +33,9 @@ class OrdersTestCase(BaseTestCase):
 
     def test_create_order_success(self):
         """Teste la création d'une commande avec succès."""
+        initial_stock_product1 = self.product1.stock
+        initial_stock_product2 = self.product2.stock
+
         order_data = {
             'items': [
                 {'product_id': self.product1.id, 'quantity': 2},
@@ -61,8 +64,8 @@ class OrdersTestCase(BaseTestCase):
         self.assertEqual(created_order.shipping_city, 'Testville')
 
         # Vérifier que le stock a été mis à jour
-        self.assertEqual(db.session.get(Product, self.product1.id).stock, 48)
-        self.assertEqual(db.session.get(Product, self.product2.id).stock, 199)
+        self.assertEqual(db.session.get(Product, self.product1.id).stock, initial_stock_product1 - 2)
+        self.assertEqual(db.session.get(Product, self.product2.id).stock, initial_stock_product2 - 1)
         # Vérifier que la commande et les OrderItems ont été créés
         self.assertEqual(OrderItem.query.count(), 2)
 
@@ -84,13 +87,14 @@ class OrdersTestCase(BaseTestCase):
 
     def test_create_order_insufficient_stock(self):
         """Teste la création d'une commande avec un stock insuffisant."""
+        initial_stock = self.product1.stock
         order_data = {
             'items': [{'product_id': self.product1.id, 'quantity': 100}], # Stock est 50
             'shipping_address': '123 Rue du Test',
             'shipping_city': 'Testville',
             'shipping_postal_code': '75001',
             'shipping_country': 'France'
-        }
+        }https://github.com/INEXFEE/Digimarket-API/blob/main/app/models.py
         res = self.client.post(
             '/api/orders/',
             data=json.dumps(order_data),
@@ -101,7 +105,7 @@ class OrdersTestCase(BaseTestCase):
         self.assertEqual(res.status_code, 400)
         self.assertIn('stock insuffisant', data.get('message', ''))
         # Vérifier que le stock n'a pas changé
-        self.assertEqual(db.session.get(Product, self.product1.id).stock, 50)
+        self.assertEqual(db.session.get(Product, self.product1.id).stock, initial_stock)
 
     def test_get_orders_as_client(self):
         """Teste qu'un client ne voit que ses propres commandes."""
