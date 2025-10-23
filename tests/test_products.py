@@ -23,9 +23,9 @@ class ProductsTestCase(BaseTestCase):
 
     def _create_test_products(self):
         """Méthode d'aide pour créer des produits de test."""
-        product1 = Product(name='Laptop Pro', price=1200.00, stock=50, category_id=self.category1.id)
-        product2 = Product(name='Souris Gamer', price=75.50, stock=200, category_id=self.category2.id)
-        db.session.add_all([product1, product2])
+        self.product1 = Product(name='Laptop Pro', price=1200.00, stock=50, category_id=self.category1.id)
+        self.product2 = Product(name='Souris Gamer', price=75.50, stock=200, category_id=self.category2.id)
+        db.session.add_all([self.product1, self.product2])
         db.session.commit()
 
     # --- Tests des routes publiques ---
@@ -40,7 +40,7 @@ class ProductsTestCase(BaseTestCase):
 
     def test_get_single_product(self):
         """Teste la récupération d'un seul produit par son ID (route publique)."""
-        res = self.client.get('/api/products/1')
+        res = self.client.get(f'/api/products/{self.product1.id}')
         data = json.loads(res.data)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data['name'], 'Laptop Pro')
@@ -106,6 +106,7 @@ class ProductsTestCase(BaseTestCase):
 
     def test_create_product_as_client(self):
         """Teste qu'un client ne peut pas créer de produit."""
+        initial_product_count = Product.query.count()
         product_data = {'name': 'Produit non autorisé', 'price': 10.0, 'stock': 10, 'category_id': self.category1.id}
         res = self.client.post(
             '/api/products/',
@@ -114,6 +115,7 @@ class ProductsTestCase(BaseTestCase):
             content_type='application/json'
         )
         self.assertEqual(res.status_code, 403) # 403 Forbidden
+        self.assertEqual(Product.query.count(), initial_product_count)
 
     def test_create_product_no_token(self):
         """Teste la création d'un produit sans token d'authentification."""
@@ -129,7 +131,7 @@ class ProductsTestCase(BaseTestCase):
         """Teste la mise à jour d'un produit par un admin."""
         update_data = {'price': 1150.00, 'stock': 45, 'category_id': self.category2.id}
         res = self.client.put(
-            '/api/products/1',
+            f'/api/products/{self.product1.id}',
             data=json.dumps(update_data),
             headers=self.admin_headers,
             content_type='application/json'
@@ -137,15 +139,15 @@ class ProductsTestCase(BaseTestCase):
         data = json.loads(res.data)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data['price'], 1150.00)
-        self.assertEqual(db.session.get(Product, 1).stock, 45)
-        self.assertEqual(db.session.get(Product, 1).category_id, self.category2.id)
+        self.assertEqual(db.session.get(Product, self.product1.id).stock, 45)
+        self.assertEqual(db.session.get(Product, self.product1.id).category_id, self.category2.id)
 
     def test_delete_product_as_admin(self):
         """Teste la suppression d'un produit par un admin."""
-        res = self.client.delete('/api/products/1', headers=self.admin_headers)
+        res = self.client.delete(f'/api/products/{self.product1.id}', headers=self.admin_headers)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(json.loads(res.data)['message'], 'Produit supprimé avec succès')
-        self.assertIsNone(db.session.get(Product, 1))
+        self.assertIsNone(db.session.get(Product, self.product1.id))
         self.assertEqual(Product.query.count(), 1)
 
 if __name__ == '__main__':

@@ -1,8 +1,8 @@
-"""Initial migration with all models
+"""Initial migration from existing models
 
-Revision ID: 3824e6693c24
+Revision ID: 61c865096c6c
 Revises: 
-Create Date: 2025-10-22 15:09:36.245402
+Create Date: 2025-10-23 10:03:08.035380
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '3824e6693c24'
+revision = '61c865096c6c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -40,6 +40,10 @@ def upgrade():
     sa.Column('order_date', sa.DateTime(), nullable=True),
     sa.Column('total_amount', sa.Float(), nullable=False),
     sa.Column('status', sa.String(length=50), nullable=True),
+    sa.Column('shipping_address', sa.String(length=255), nullable=False),
+    sa.Column('shipping_city', sa.String(length=100), nullable=False),
+    sa.Column('shipping_postal_code', sa.String(length=20), nullable=False),
+    sa.Column('shipping_country', sa.String(length=100), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -61,8 +65,8 @@ def upgrade():
     sa.Column('product_id', sa.Integer(), nullable=False),
     sa.Column('quantity', sa.Integer(), nullable=False),
     sa.Column('price_at_order', sa.Float(), nullable=False),
-    sa.ForeignKeyConstraint(['order_id'], ['order.id'], ),
-    sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
+    sa.ForeignKeyConstraint(['order_id'], ['order.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['product_id'], ['product.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###

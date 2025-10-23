@@ -71,6 +71,7 @@ class OrdersTestCase(BaseTestCase):
 
     def test_create_order_no_token(self):
         """Teste la création d'une commande sans token d'authentification."""
+        initial_order_count = Order.query.count()
         order_data = {
             'items': [{'product_id': self.product1.id, 'quantity': 1}],
             'shipping_address': '123 Rue du Test',
@@ -84,6 +85,7 @@ class OrdersTestCase(BaseTestCase):
             content_type='application/json'
         )
         self.assertEqual(res.status_code, 401) # 401 Unauthorized
+        self.assertEqual(Order.query.count(), initial_order_count)
 
     def test_create_order_insufficient_stock(self):
         """Teste la création d'une commande avec un stock insuffisant."""
@@ -230,6 +232,7 @@ class OrdersTestCase(BaseTestCase):
         )
         db.session.add(order)
         db.session.commit()
+        self.assertEqual(order.status, 'pending') # Vérifier l'état initial
 
         res = self.client.patch(
             f'/api/orders/{order.id}',
@@ -246,22 +249,23 @@ class OrdersTestCase(BaseTestCase):
         initial_stock = self.product1.stock
         order_quantity = 2
 
-        # 1. Créer une commande pour décrémenter le stock
-        order = Order(
-            user_id=self.client_user_id, total_amount=self.product1.price * order_quantity,
-            shipping_address='Addr 1', shipping_city='City 1', shipping_postal_code='11111', shipping_country='FR'
+        # 1. Créer une commande via l'API pour décrémenter le stock
+        order_data = {
+            'items': [{'product_id': self.product1.id, 'quantity': order_quantity}],
+            'shipping_address': 'Addr 1', 'shipping_city': 'City 1',
+            'shipping_postal_code': '11111', 'shipping_country': 'FR'
+        }
+        res_create = self.client.post(
+            '/api/orders/', data=json.dumps(order_data), headers=self.client_headers, content_type='application/json'
         )
-        order_item = OrderItem(order=order, product_id=self.product1.id, quantity=order_quantity, price_at_order=self.product1.price)
-        product = db.session.get(Product, self.product1.id)
-        product.stock -= order_quantity
-        db.session.add_all([order, order_item])
-        db.session.commit()
+        self.assertEqual(res_create.status_code, 201)
+        order_id = json.loads(res_create.data)['order_id']
 
         self.assertEqual(db.session.get(Product, self.product1.id).stock, initial_stock - order_quantity)
 
         # 2. Annuler la commande en tant qu'admin
         res = self.client.patch(
-            f'/api/orders/{order.id}',
+            f'/api/orders/{order_id}',
             data=json.dumps({'status': 'cancelled'}),
             headers=self.admin_headers,
             content_type='application/json'
